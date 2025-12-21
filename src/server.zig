@@ -126,7 +126,7 @@ fn handleGet(input: []const u8, allocator: std.mem.Allocator) anyerror![]u8 {
 }
 
 
-pub fn runServer() !void {
+pub fn runServer(limit: ?usize) !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
@@ -134,7 +134,7 @@ pub fn runServer() !void {
     init(allocator);
     defer deinit();
 
-    var server = try grpc.GrpcServer.init(allocator, 50051, "secret-key");
+    var server = try grpc.GrpcServer.init(allocator, 50051, "secret-key", limit);
     defer server.deinit();
 
     try server.handlers.append(allocator, .{
