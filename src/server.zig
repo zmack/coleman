@@ -13,6 +13,12 @@ pub fn init(allocator: std.mem.Allocator) void {
 }
 
 pub fn deinit() void {
+    // Free all keys and values in storage
+    var it = storage.iterator();
+    while (it.next()) |entry| {
+        gpa_allocator.free(entry.key_ptr.*);
+        gpa_allocator.free(entry.value_ptr.*);
+    }
     storage.deinit();
 }
 
