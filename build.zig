@@ -110,9 +110,35 @@ pub fn build(b: *std.Build) void {
     // by passing `--prefix` or `-p`.
     b.installArtifact(exe);
 
+    // Create modules for source files that main needs to import
+    const schema_mod_main = b.addModule("schema", .{
+        .root_source_file = b.path("src/schema.zig"),
+        .target = target,
+    });
+
+    const table_mod_main = b.addModule("table", .{
+        .root_source_file = b.path("src/table.zig"),
+        .target = target,
+        .imports = &.{
+            .{ .name = "schema", .module = schema_mod_main },
+        },
+    });
+
+    const table_manager_mod_main = b.addModule("table_manager", .{
+        .root_source_file = b.path("src/table_manager.zig"),
+        .target = target,
+        .imports = &.{
+            .{ .name = "schema", .module = schema_mod_main },
+            .{ .name = "table", .module = table_mod_main },
+        },
+    });
+
     // Add modules to executable
     exe.root_module.addImport("protobuf", protobuf_mod);
     exe.root_module.addImport("grpc", grpc_mod);
+    exe.root_module.addImport("schema", schema_mod_main);
+    exe.root_module.addImport("table", table_mod_main);
+    exe.root_module.addImport("table_manager", table_manager_mod_main);
 
     // Client executable
     const client_exe = b.addExecutable(.{
@@ -125,6 +151,9 @@ pub fn build(b: *std.Build) void {
     });
     client_exe.root_module.addImport("protobuf", protobuf_mod);
     client_exe.root_module.addImport("grpc", grpc_mod);
+    client_exe.root_module.addImport("schema", schema_mod_main);
+    client_exe.root_module.addImport("table", table_mod_main);
+    client_exe.root_module.addImport("table_manager", table_manager_mod_main);
     b.installArtifact(client_exe);
 
     // This creates a top level step. Top level steps have a name and can be
@@ -153,32 +182,107 @@ pub fn build(b: *std.Build) void {
         run_cmd.addArgs(args);
     }
 
-    // Creates an executable that will run `test` blocks from the provided module.
-    // Here `mod` needs to define a target, which is why earlier we made sure to
-    // set the releative field.
-    const mod_tests = b.addTest(.{
-        .root_module = mod,
+    // Test suite organization
+    const test_step = b.step("test", "Run all tests");
+    const unit_test_step = b.step("test-unit", "Run unit tests only");
+    const integration_test_step = b.step("test-integration", "Run integration tests (requires server running on port 50051)");
+
+    // Helper function to create a test executable
+    const TestFile = struct {
+        path: []const u8,
+        name: []const u8,
+    };
+
+    const unit_tests = [_]TestFile{
+        .{ .path = "tests/schema_test.zig", .name = "schema" },
+        .{ .path = "tests/table_test.zig", .name = "table" },
+        .{ .path = "tests/table_manager_test.zig", .name = "table_manager" },
+    };
+
+    const integration_tests = [_]TestFile{
+        .{ .path = "tests/integration_test.zig", .name = "integration" },
+    };
+
+    // Create modules for source files that tests need to import
+    const schema_mod = b.addModule("schema", .{
+        .root_source_file = b.path("src/schema.zig"),
+        .target = target,
     });
 
-    // A run step that will run the test executable.
-    const run_mod_tests = b.addRunArtifact(mod_tests);
-
-    // Creates an executable that will run `test` blocks from the executable's
-    // root module. Note that test executables only test one module at a time,
-    // hence why we have to create two separate ones.
-    const exe_tests = b.addTest(.{
-        .root_module = exe.root_module,
+    const table_mod = b.addModule("table", .{
+        .root_source_file = b.path("src/table.zig"),
+        .target = target,
+        .imports = &.{
+            .{ .name = "schema", .module = schema_mod },
+        },
     });
 
-    // A run step that will run the second test executable.
-    const run_exe_tests = b.addRunArtifact(exe_tests);
+    const table_manager_mod = b.addModule("table_manager", .{
+        .root_source_file = b.path("src/table_manager.zig"),
+        .target = target,
+        .imports = &.{
+            .{ .name = "schema", .module = schema_mod },
+            .{ .name = "table", .module = table_mod },
+        },
+    });
 
-    // A top level step for running all tests. dependOn can be called multiple
-    // times and since the two run steps do not depend on one another, this will
-    // make the two of them run in parallel.
-    const test_step = b.step("test", "Run tests");
-    test_step.dependOn(&run_mod_tests.step);
-    test_step.dependOn(&run_exe_tests.step);
+    // Add unit tests
+    for (unit_tests) |test_file| {
+        const unit_test = b.addTest(.{
+            .root_module = b.createModule(.{
+                .root_source_file = b.path(test_file.path),
+                .target = target,
+                .optimize = optimize,
+            }),
+        });
+
+        // Add module imports based on test file
+        if (std.mem.indexOf(u8, test_file.path, "schema") != null) {
+            unit_test.root_module.addImport("schema", schema_mod);
+        }
+        if (std.mem.indexOf(u8, test_file.path, "table_test") != null) {
+            unit_test.root_module.addImport("schema", schema_mod);
+            unit_test.root_module.addImport("table", table_mod);
+        }
+        if (std.mem.indexOf(u8, test_file.path, "table_manager") != null) {
+            unit_test.root_module.addImport("schema", schema_mod);
+            unit_test.root_module.addImport("table", table_mod);
+            unit_test.root_module.addImport("table_manager", table_manager_mod);
+        }
+
+        const run_unit_test = b.addRunArtifact(unit_test);
+        unit_test_step.dependOn(&run_unit_test.step);
+        test_step.dependOn(&run_unit_test.step);
+    }
+
+    // Create proto module for integration tests
+    const proto_mod = b.addModule("proto", .{
+        .root_source_file = b.path("src/proto/log.pb.zig"),
+        .target = target,
+        .imports = &.{
+            .{ .name = "protobuf", .module = protobuf_mod },
+        },
+    });
+
+    // Add integration tests
+    for (integration_tests) |test_file| {
+        const int_test = b.addTest(.{
+            .root_module = b.createModule(.{
+                .root_source_file = b.path(test_file.path),
+                .target = target,
+                .optimize = optimize,
+                .imports = &.{},
+            }),
+        });
+        int_test.root_module.addImport("protobuf", protobuf_mod);
+        int_test.root_module.addImport("grpc", grpc_mod);
+        int_test.root_module.addImport("proto", proto_mod);
+
+        const run_int_test = b.addRunArtifact(int_test);
+        integration_test_step.dependOn(&run_int_test.step);
+        // Note: Integration tests not added to main test step by default
+        // Run with: zig build test-integration
+    }
 
     // Just like flags, top level steps are also listed in the `--help` menu.
     //

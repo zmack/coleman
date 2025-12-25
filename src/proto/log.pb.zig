@@ -292,3 +292,437 @@ pub const GetResponse = struct {
         return protobuf.json.stringify(@This(), self, jws);
     }
 };
+
+// Manually added columnar storage messages
+
+// Column type enum
+pub const ColumnType = enum(i32) {
+    INT64 = 0,
+    FLOAT64 = 1,
+    STRING = 2,
+    BOOL = 3,
+};
+
+// Column definition
+pub const ColumnDef = struct {
+    name: []const u8 = &.{},
+    type: ColumnType = .INT64,
+
+    pub const _desc_table = .{
+        .name = fd(1, .{ .scalar = .string }),
+        .type = fd(2, .{ .@"enum" = {} }),
+    };
+
+    pub fn encode(self: @This(), writer: anytype, allocator: std.mem.Allocator) !void {
+        return protobuf.encode(writer, allocator, self);
+    }
+
+    pub fn decode(reader: anytype, allocator: std.mem.Allocator) !@This() {
+        return protobuf.decode(@This(), reader, allocator);
+    }
+
+    pub fn deinit(self: *@This(), allocator: std.mem.Allocator) void {
+        return protobuf.deinit(allocator, self);
+    }
+
+    pub fn dupe(self: @This(), allocator: std.mem.Allocator) std.mem.Allocator.Error!@This() {
+        return protobuf.dupe(@This(), self, allocator);
+    }
+
+    pub fn jsonDecode(input: []const u8, options: std.json.ParseOptions, allocator: std.mem.Allocator) !std.json.Parsed(@This()) {
+        return protobuf.json.decode(@This(), input, options, allocator);
+    }
+
+    pub fn jsonEncode(self: @This(), options: std.json.Stringify.Options, allocator: std.mem.Allocator) ![]const u8 {
+        return protobuf.json.encode(self, options, allocator);
+    }
+
+    pub fn jsonParse(allocator: std.mem.Allocator, source: anytype, options: std.json.ParseOptions) !@This() {
+        return protobuf.json.parse(@This(), allocator, source, options);
+    }
+
+    pub fn jsonStringify(self: *const @This(), jws: anytype) !void {
+        return protobuf.json.stringify(@This(), self, jws);
+    }
+};
+
+// Table schema
+pub const Schema = struct {
+    columns: std.ArrayList(ColumnDef) = .empty,
+
+    pub const _desc_table = .{
+        .columns = fd(1, .{ .repeated = .{ .submessage = {} } }),
+    };
+
+    pub fn encode(self: @This(), writer: anytype, allocator: std.mem.Allocator) !void {
+        return protobuf.encode(writer, allocator, self);
+    }
+
+    pub fn decode(reader: anytype, allocator: std.mem.Allocator) !@This() {
+        return protobuf.decode(@This(), reader, allocator);
+    }
+
+    pub fn deinit(self: *@This(), allocator: std.mem.Allocator) void {
+        return protobuf.deinit(allocator, self);
+    }
+
+    pub fn dupe(self: @This(), allocator: std.mem.Allocator) std.mem.Allocator.Error!@This() {
+        return protobuf.dupe(@This(), self, allocator);
+    }
+
+    pub fn jsonDecode(input: []const u8, options: std.json.ParseOptions, allocator: std.mem.Allocator) !std.json.Parsed(@This()) {
+        return protobuf.json.decode(@This(), input, options, allocator);
+    }
+
+    pub fn jsonEncode(self: @This(), options: std.json.Stringify.Options, allocator: std.mem.Allocator) ![]const u8 {
+        return protobuf.json.encode(self, options, allocator);
+    }
+
+    pub fn jsonParse(allocator: std.mem.Allocator, source: anytype, options: std.json.ParseOptions) !@This() {
+        return protobuf.json.parse(@This(), allocator, source, options);
+    }
+
+    pub fn jsonStringify(self: *const @This(), jws: anytype) !void {
+        return protobuf.json.stringify(@This(), self, jws);
+    }
+};
+
+// Value - using optional fields since protobuf library doesn't support unions well
+pub const Value = struct {
+    int64_value: ?i64 = null,
+    float64_value: ?f64 = null,
+    string_value: []const u8 = &.{},
+    bool_value: ?bool = null,
+
+    pub const _desc_table = .{
+        .int64_value = fd(1, .{ .scalar = .int64 }),
+        .float64_value = fd(2, .{ .scalar = .double }),
+        .string_value = fd(3, .{ .scalar = .string }),
+        .bool_value = fd(4, .{ .scalar = .bool }),
+    };
+
+    pub fn encode(self: @This(), writer: anytype, allocator: std.mem.Allocator) !void {
+        return protobuf.encode(writer, allocator, self);
+    }
+
+    pub fn decode(reader: anytype, allocator: std.mem.Allocator) !@This() {
+        return protobuf.decode(@This(), reader, allocator);
+    }
+
+    pub fn deinit(self: *@This(), allocator: std.mem.Allocator) void {
+        return protobuf.deinit(allocator, self);
+    }
+
+    pub fn dupe(self: @This(), allocator: std.mem.Allocator) std.mem.Allocator.Error!@This() {
+        return protobuf.dupe(@This(), self, allocator);
+    }
+
+    pub fn jsonDecode(input: []const u8, options: std.json.ParseOptions, allocator: std.mem.Allocator) !std.json.Parsed(@This()) {
+        return protobuf.json.decode(@This(), input, options, allocator);
+    }
+
+    pub fn jsonEncode(self: @This(), options: std.json.Stringify.Options, allocator: std.mem.Allocator) ![]const u8 {
+        return protobuf.json.encode(self, options, allocator);
+    }
+
+    pub fn jsonParse(allocator: std.mem.Allocator, source: anytype, options: std.json.ParseOptions) !@This() {
+        return protobuf.json.parse(@This(), allocator, source, options);
+    }
+
+    pub fn jsonStringify(self: *const @This(), jws: anytype) !void {
+        return protobuf.json.stringify(@This(), self, jws);
+    }
+};
+
+// CreateTable messages
+pub const CreateTableRequest = struct {
+    table_name: []const u8 = &.{},
+    schema: ?Schema = null,
+
+    pub const _desc_table = .{
+        .table_name = fd(1, .{ .scalar = .string }),
+        .schema = fd(2, .{ .submessage = {} }),
+    };
+
+    pub fn encode(self: @This(), writer: anytype, allocator: std.mem.Allocator) !void {
+        return protobuf.encode(writer, allocator, self);
+    }
+
+    pub fn decode(reader: anytype, allocator: std.mem.Allocator) !@This() {
+        return protobuf.decode(@This(), reader, allocator);
+    }
+
+    pub fn deinit(self: *@This(), allocator: std.mem.Allocator) void {
+        return protobuf.deinit(allocator, self);
+    }
+
+    pub fn dupe(self: @This(), allocator: std.mem.Allocator) std.mem.Allocator.Error!@This() {
+        return protobuf.dupe(@This(), self, allocator);
+    }
+
+    pub fn jsonDecode(input: []const u8, options: std.json.ParseOptions, allocator: std.mem.Allocator) !std.json.Parsed(@This()) {
+        return protobuf.json.decode(@This(), input, options, allocator);
+    }
+
+    pub fn jsonEncode(self: @This(), options: std.json.Stringify.Options, allocator: std.mem.Allocator) ![]const u8 {
+        return protobuf.json.encode(self, options, allocator);
+    }
+
+    pub fn jsonParse(allocator: std.mem.Allocator, source: anytype, options: std.json.ParseOptions) !@This() {
+        return protobuf.json.parse(@This(), allocator, source, options);
+    }
+
+    pub fn jsonStringify(self: *const @This(), jws: anytype) !void {
+        return protobuf.json.stringify(@This(), self, jws);
+    }
+};
+
+pub const CreateTableResponse = struct {
+    success: bool = false,
+    error_msg: []const u8 = &.{},
+
+    pub const _desc_table = .{
+        .success = fd(1, .{ .scalar = .bool }),
+        .error_msg = fd(2, .{ .scalar = .string }),
+    };
+
+    pub fn encode(self: @This(), writer: anytype, allocator: std.mem.Allocator) !void {
+        return protobuf.encode(writer, allocator, self);
+    }
+
+    pub fn decode(reader: anytype, allocator: std.mem.Allocator) !@This() {
+        return protobuf.decode(@This(), reader, allocator);
+    }
+
+    pub fn deinit(self: *@This(), allocator: std.mem.Allocator) void {
+        return protobuf.deinit(allocator, self);
+    }
+
+    pub fn dupe(self: @This(), allocator: std.mem.Allocator) std.mem.Allocator.Error!@This() {
+        return protobuf.dupe(@This(), self, allocator);
+    }
+
+    pub fn jsonDecode(input: []const u8, options: std.json.ParseOptions, allocator: std.mem.Allocator) !std.json.Parsed(@This()) {
+        return protobuf.json.decode(@This(), input, options, allocator);
+    }
+
+    pub fn jsonEncode(self: @This(), options: std.json.Stringify.Options, allocator: std.mem.Allocator) ![]const u8 {
+        return protobuf.json.encode(self, options, allocator);
+    }
+
+    pub fn jsonParse(allocator: std.mem.Allocator, source: anytype, options: std.json.ParseOptions) !@This() {
+        return protobuf.json.parse(@This(), allocator, source, options);
+    }
+
+    pub fn jsonStringify(self: *const @This(), jws: anytype) !void {
+        return protobuf.json.stringify(@This(), self, jws);
+    }
+};
+
+// AddRecord messages
+pub const AddRecordRequest = struct {
+    table_name: []const u8 = &.{},
+    values: std.ArrayList(Value) = .empty,
+
+    pub const _desc_table = .{
+        .table_name = fd(1, .{ .scalar = .string }),
+        .values = fd(2, .{ .repeated = .{ .submessage = {} } }),
+    };
+
+    pub fn encode(self: @This(), writer: anytype, allocator: std.mem.Allocator) !void {
+        return protobuf.encode(writer, allocator, self);
+    }
+
+    pub fn decode(reader: anytype, allocator: std.mem.Allocator) !@This() {
+        return protobuf.decode(@This(), reader, allocator);
+    }
+
+    pub fn deinit(self: *@This(), allocator: std.mem.Allocator) void {
+        return protobuf.deinit(allocator, self);
+    }
+
+    pub fn dupe(self: @This(), allocator: std.mem.Allocator) std.mem.Allocator.Error!@This() {
+        return protobuf.dupe(@This(), self, allocator);
+    }
+
+    pub fn jsonDecode(input: []const u8, options: std.json.ParseOptions, allocator: std.mem.Allocator) !std.json.Parsed(@This()) {
+        return protobuf.json.decode(@This(), input, options, allocator);
+    }
+
+    pub fn jsonEncode(self: @This(), options: std.json.Stringify.Options, allocator: std.mem.Allocator) ![]const u8 {
+        return protobuf.json.encode(self, options, allocator);
+    }
+
+    pub fn jsonParse(allocator: std.mem.Allocator, source: anytype, options: std.json.ParseOptions) !@This() {
+        return protobuf.json.parse(@This(), allocator, source, options);
+    }
+
+    pub fn jsonStringify(self: *const @This(), jws: anytype) !void {
+        return protobuf.json.stringify(@This(), self, jws);
+    }
+};
+
+pub const AddRecordResponse = struct {
+    success: bool = false,
+    error_msg: []const u8 = &.{},
+
+    pub const _desc_table = .{
+        .success = fd(1, .{ .scalar = .bool }),
+        .error_msg = fd(2, .{ .scalar = .string }),
+    };
+
+    pub fn encode(self: @This(), writer: anytype, allocator: std.mem.Allocator) !void {
+        return protobuf.encode(writer, allocator, self);
+    }
+
+    pub fn decode(reader: anytype, allocator: std.mem.Allocator) !@This() {
+        return protobuf.decode(@This(), reader, allocator);
+    }
+
+    pub fn deinit(self: *@This(), allocator: std.mem.Allocator) void {
+        return protobuf.deinit(allocator, self);
+    }
+
+    pub fn dupe(self: @This(), allocator: std.mem.Allocator) std.mem.Allocator.Error!@This() {
+        return protobuf.dupe(@This(), self, allocator);
+    }
+
+    pub fn jsonDecode(input: []const u8, options: std.json.ParseOptions, allocator: std.mem.Allocator) !std.json.Parsed(@This()) {
+        return protobuf.json.decode(@This(), input, options, allocator);
+    }
+
+    pub fn jsonEncode(self: @This(), options: std.json.Stringify.Options, allocator: std.mem.Allocator) ![]const u8 {
+        return protobuf.json.encode(self, options, allocator);
+    }
+
+    pub fn jsonParse(allocator: std.mem.Allocator, source: anytype, options: std.json.ParseOptions) !@This() {
+        return protobuf.json.parse(@This(), allocator, source, options);
+    }
+
+    pub fn jsonStringify(self: *const @This(), jws: anytype) !void {
+        return protobuf.json.stringify(@This(), self, jws);
+    }
+};
+
+// Scan messages
+pub const ScanRequest = struct {
+    table_name: []const u8 = &.{},
+
+    pub const _desc_table = .{
+        .table_name = fd(1, .{ .scalar = .string }),
+    };
+
+    pub fn encode(self: @This(), writer: anytype, allocator: std.mem.Allocator) !void {
+        return protobuf.encode(writer, allocator, self);
+    }
+
+    pub fn decode(reader: anytype, allocator: std.mem.Allocator) !@This() {
+        return protobuf.decode(@This(), reader, allocator);
+    }
+
+    pub fn deinit(self: *@This(), allocator: std.mem.Allocator) void {
+        return protobuf.deinit(allocator, self);
+    }
+
+    pub fn dupe(self: @This(), allocator: std.mem.Allocator) std.mem.Allocator.Error!@This() {
+        return protobuf.dupe(@This(), self, allocator);
+    }
+
+    pub fn jsonDecode(input: []const u8, options: std.json.ParseOptions, allocator: std.mem.Allocator) !std.json.Parsed(@This()) {
+        return protobuf.json.decode(@This(), input, options, allocator);
+    }
+
+    pub fn jsonEncode(self: @This(), options: std.json.Stringify.Options, allocator: std.mem.Allocator) ![]const u8 {
+        return protobuf.json.encode(self, options, allocator);
+    }
+
+    pub fn jsonParse(allocator: std.mem.Allocator, source: anytype, options: std.json.ParseOptions) !@This() {
+        return protobuf.json.parse(@This(), allocator, source, options);
+    }
+
+    pub fn jsonStringify(self: *const @This(), jws: anytype) !void {
+        return protobuf.json.stringify(@This(), self, jws);
+    }
+};
+
+pub const Record = struct {
+    values: std.ArrayList(Value) = .empty,
+
+    pub const _desc_table = .{
+        .values = fd(1, .{ .repeated = .{ .submessage = {} } }),
+    };
+
+    pub fn encode(self: @This(), writer: anytype, allocator: std.mem.Allocator) !void {
+        return protobuf.encode(writer, allocator, self);
+    }
+
+    pub fn decode(reader: anytype, allocator: std.mem.Allocator) !@This() {
+        return protobuf.decode(@This(), reader, allocator);
+    }
+
+    pub fn deinit(self: *@This(), allocator: std.mem.Allocator) void {
+        return protobuf.deinit(allocator, self);
+    }
+
+    pub fn dupe(self: @This(), allocator: std.mem.Allocator) std.mem.Allocator.Error!@This() {
+        return protobuf.dupe(@This(), self, allocator);
+    }
+
+    pub fn jsonDecode(input: []const u8, options: std.json.ParseOptions, allocator: std.mem.Allocator) !std.json.Parsed(@This()) {
+        return protobuf.json.decode(@This(), input, options, allocator);
+    }
+
+    pub fn jsonEncode(self: @This(), options: std.json.Stringify.Options, allocator: std.mem.Allocator) ![]const u8 {
+        return protobuf.json.encode(self, options, allocator);
+    }
+
+    pub fn jsonParse(allocator: std.mem.Allocator, source: anytype, options: std.json.ParseOptions) !@This() {
+        return protobuf.json.parse(@This(), allocator, source, options);
+    }
+
+    pub fn jsonStringify(self: *const @This(), jws: anytype) !void {
+        return protobuf.json.stringify(@This(), self, jws);
+    }
+};
+
+pub const ScanResponse = struct {
+    records: std.ArrayList(Record) = .empty,
+    error_msg: []const u8 = &.{},
+
+    pub const _desc_table = .{
+        .records = fd(1, .{ .repeated = .{ .submessage = {} } }),
+        .error_msg = fd(2, .{ .scalar = .string }),
+    };
+
+    pub fn encode(self: @This(), writer: anytype, allocator: std.mem.Allocator) !void {
+        return protobuf.encode(writer, allocator, self);
+    }
+
+    pub fn decode(reader: anytype, allocator: std.mem.Allocator) !@This() {
+        return protobuf.decode(@This(), reader, allocator);
+    }
+
+    pub fn deinit(self: *@This(), allocator: std.mem.Allocator) void {
+        return protobuf.deinit(allocator, self);
+    }
+
+    pub fn dupe(self: @This(), allocator: std.mem.Allocator) std.mem.Allocator.Error!@This() {
+        return protobuf.dupe(@This(), self, allocator);
+    }
+
+    pub fn jsonDecode(input: []const u8, options: std.json.ParseOptions, allocator: std.mem.Allocator) !std.json.Parsed(@This()) {
+        return protobuf.json.decode(@This(), input, options, allocator);
+    }
+
+    pub fn jsonEncode(self: @This(), options: std.json.Stringify.Options, allocator: std.mem.Allocator) ![]const u8 {
+        return protobuf.json.encode(self, options, allocator);
+    }
+
+    pub fn jsonParse(allocator: std.mem.Allocator, source: anytype, options: std.json.ParseOptions) !@This() {
+        return protobuf.json.parse(@This(), allocator, source, options);
+    }
+
+    pub fn jsonStringify(self: *const @This(), jws: anytype) !void {
+        return protobuf.json.stringify(@This(), self, jws);
+    }
+};

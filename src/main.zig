@@ -29,9 +29,9 @@ pub fn main() !void {
 
 test "ArrayList init" {
     const allocator = std.testing.allocator;
-    var list = std.ArrayList(u32).init(allocator);
-    defer list.deinit();
-    try list.append(1);
+    var list: std.ArrayList(u32) = .{};
+    defer list.deinit(allocator);
+    try list.append(allocator, 1);
 }
 
 test "fuzz example" {
