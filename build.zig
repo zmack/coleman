@@ -124,12 +124,38 @@ pub fn build(b: *std.Build) void {
         },
     });
 
+    const config_mod_main = b.addModule("config", .{
+        .root_source_file = b.path("src/config.zig"),
+        .target = target,
+    });
+
+    const wal_mod_main = b.addModule("wal", .{
+        .root_source_file = b.path("src/wal.zig"),
+        .target = target,
+        .imports = &.{
+            .{ .name = "schema", .module = schema_mod_main },
+            .{ .name = "table", .module = table_mod_main },
+        },
+    });
+
+    const snapshot_mod_main = b.addModule("snapshot", .{
+        .root_source_file = b.path("src/snapshot.zig"),
+        .target = target,
+        .imports = &.{
+            .{ .name = "schema", .module = schema_mod_main },
+            .{ .name = "table", .module = table_mod_main },
+        },
+    });
+
     const table_manager_mod_main = b.addModule("table_manager", .{
         .root_source_file = b.path("src/table_manager.zig"),
         .target = target,
         .imports = &.{
             .{ .name = "schema", .module = schema_mod_main },
             .{ .name = "table", .module = table_mod_main },
+            .{ .name = "config", .module = config_mod_main },
+            .{ .name = "wal", .module = wal_mod_main },
+            .{ .name = "snapshot", .module = snapshot_mod_main },
         },
     });
 
@@ -138,6 +164,9 @@ pub fn build(b: *std.Build) void {
     exe.root_module.addImport("grpc", grpc_mod);
     exe.root_module.addImport("schema", schema_mod_main);
     exe.root_module.addImport("table", table_mod_main);
+    exe.root_module.addImport("config", config_mod_main);
+    exe.root_module.addImport("wal", wal_mod_main);
+    exe.root_module.addImport("snapshot", snapshot_mod_main);
     exe.root_module.addImport("table_manager", table_manager_mod_main);
 
     // Client executable
@@ -217,12 +246,38 @@ pub fn build(b: *std.Build) void {
         },
     });
 
+    const config_mod = b.addModule("config", .{
+        .root_source_file = b.path("src/config.zig"),
+        .target = target,
+    });
+
+    const wal_mod = b.addModule("wal", .{
+        .root_source_file = b.path("src/wal.zig"),
+        .target = target,
+        .imports = &.{
+            .{ .name = "schema", .module = schema_mod },
+            .{ .name = "table", .module = table_mod },
+        },
+    });
+
+    const snapshot_mod = b.addModule("snapshot", .{
+        .root_source_file = b.path("src/snapshot.zig"),
+        .target = target,
+        .imports = &.{
+            .{ .name = "schema", .module = schema_mod },
+            .{ .name = "table", .module = table_mod },
+        },
+    });
+
     const table_manager_mod = b.addModule("table_manager", .{
         .root_source_file = b.path("src/table_manager.zig"),
         .target = target,
         .imports = &.{
             .{ .name = "schema", .module = schema_mod },
             .{ .name = "table", .module = table_mod },
+            .{ .name = "config", .module = config_mod },
+            .{ .name = "wal", .module = wal_mod },
+            .{ .name = "snapshot", .module = snapshot_mod },
         },
     });
 
@@ -248,6 +303,7 @@ pub fn build(b: *std.Build) void {
             unit_test.root_module.addImport("schema", schema_mod);
             unit_test.root_module.addImport("table", table_mod);
             unit_test.root_module.addImport("table_manager", table_manager_mod);
+            unit_test.root_module.addImport("config", config_mod);
         }
 
         const run_unit_test = b.addRunArtifact(unit_test);

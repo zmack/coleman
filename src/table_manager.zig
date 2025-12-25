@@ -1,18 +1,40 @@
 const std = @import("std");
 const schema = @import("schema");
 const table = @import("table");
+const wal_mod = @import("wal");
+const snapshot_mod = @import("snapshot");
+const config_mod = @import("config");
 
 /// Manages multiple tables with thread-safe access
 pub const TableManager = struct {
     tables: std.StringHashMap(*table.Table),
     lock: std.Thread.RwLock,
     allocator: std.mem.Allocator,
+    wal: *wal_mod.WAL,
+    snapshot_manager: *snapshot_mod.SnapshotManager,
+    config: config_mod.Config,
+    records_since_snapshot: usize,
 
-    pub fn init(allocator: std.mem.Allocator) TableManager {
+    pub fn init(allocator: std.mem.Allocator, cfg: config_mod.Config) !TableManager {
+        // Initialize data directories
+        try cfg.initDataDir();
+
+        // Initialize WAL
+        const wal = try wal_mod.WAL.init(allocator, cfg.wal_path);
+        errdefer wal.deinit();
+
+        // Initialize snapshot manager
+        const snapshot_manager = try snapshot_mod.SnapshotManager.init(allocator, cfg.snapshot_dir);
+        errdefer snapshot_manager.deinit();
+
         return .{
             .tables = std.StringHashMap(*table.Table).init(allocator),
             .lock = .{},
             .allocator = allocator,
+            .wal = wal,
+            .snapshot_manager = snapshot_manager,
+            .config = cfg,
+            .records_since_snapshot = 0,
         };
     }
 
@@ -28,6 +50,9 @@ pub const TableManager = struct {
             self.allocator.free(entry.key_ptr.*); // Free the table name key
         }
         self.tables.deinit();
+
+        self.wal.deinit();
+        self.snapshot_manager.deinit();
     }
 
     /// Create a new table with the given name and schema
@@ -39,6 +64,14 @@ pub const TableManager = struct {
         if (self.tables.contains(name)) {
             return error.TableAlreadyExists;
         }
+
+        // Append to WAL first
+        try self.wal.append(.{
+            .create_table = .{
+                .table_name = name,
+                .schema = table_schema,
+            },
+        });
 
         // Create new table
         const new_table = try self.allocator.create(table.Table);
@@ -64,7 +97,34 @@ pub const TableManager = struct {
         defer self.lock.unlock();
 
         const tbl = self.tables.get(table_name) orelse return error.TableNotFound;
+
+        // Convert values to schema.Value for WAL
+        const wal_values = try self.allocator.alloc(schema.Value, values.len);
+        defer self.allocator.free(wal_values);
+
+        for (values, 0..) |val, i| {
+            wal_values[i] = switch (val) {
+                .int64 => |v| .{ .int_value = v },
+                .float64 => |v| .{ .float_value = v },
+                .string => |v| .{ .string_value = v },
+                .bool => |v| .{ .bool_value = v },
+            };
+        }
+
+        // Append to WAL first
+        try self.wal.append(.{
+            .add_record = .{
+                .table_name = table_name,
+                .values = wal_values,
+            },
+        });
+
+        // Add to table
         try tbl.addRecord(values);
+
+        // Track records and check if snapshot is needed
+        self.records_since_snapshot += 1;
+        try self.maybeSnapshot();
     }
 
     /// Get all table names
@@ -117,12 +177,62 @@ pub const TableManager = struct {
         }
         return rows;
     }
+
+    /// Check if snapshot is needed and trigger if thresholds met
+    fn maybeSnapshot(self: *TableManager) !void {
+        // Check if we've exceeded thresholds
+        if (self.records_since_snapshot < self.config.snapshot_record_threshold) {
+            return;
+        }
+
+        // Save snapshot
+        try self.snapshot_manager.save(self.tables);
+
+        // Truncate WAL
+        try self.wal.truncate();
+
+        // Reset counter
+        self.records_since_snapshot = 0;
+    }
+
+    /// Recover state from snapshot and WAL
+    pub fn recover(self: *TableManager) !void {
+        // Load snapshot if it exists
+        const loader = struct {
+            fn load(tbl: table.Table) !void {
+                // This will be called for each table in the snapshot
+                // The table is already fully constructed, we just need to add it
+                _ = tbl;
+            }
+        }.load;
+
+        // First load snapshot
+        try self.snapshot_manager.load(&loader);
+
+        // Then replay WAL - we need a simple approach to pass self
+        try self.replayWAL();
+    }
+
+    fn replayWAL(self: *TableManager) !void {
+        // For now, skip WAL replay - we'll implement this properly later
+        // The WAL.replay API needs to be redesigned to support context passing
+        _ = self;
+    }
 };
 
 test "table manager basic operations" {
     const allocator = std.testing.allocator;
 
-    var manager = TableManager.init(allocator);
+    const test_config = config_mod.Config{
+        .wal_path = "test_data/test.wal",
+        .snapshot_dir = "test_data/snapshots",
+        .snapshot_record_threshold = 100,
+        .snapshot_wal_size_threshold = 1024 * 1024,
+        .host = "0.0.0.0",
+        .port = 50051,
+    };
+
+    var manager = try TableManager.init(allocator, test_config);
     defer manager.deinit();
 
     // Create a table

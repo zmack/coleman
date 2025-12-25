@@ -45,6 +45,43 @@ The client performs a simple test sequence: sending a `Put` request followed by 
 ./zig-out/bin/coleman-client
 ```
 
+## Testing
+
+The project includes comprehensive unit and integration tests.
+
+### Running Tests
+
+The following commands compile and run the tests:
+
+```bash
+# Run all unit tests (compiles and executes)
+zig build test
+
+# Run only unit tests (same as above)
+zig build test-unit
+
+# Run integration tests (requires server running on :50051)
+zig build test-integration
+```
+
+Example output:
+```
+Build Summary: 7/7 steps succeeded; 14/14 tests passed
+test success
+```
+
+### Test Coverage
+
+**Unit Tests:**
+- `schema_test.zig`: Tests for column types and schema operations
+- `table_test.zig`: Tests for table creation, record operations, and type validation
+- `table_manager_test.zig`: Tests for table management operations (create, drop, scan)
+
+**Integration Tests:**
+- `integration_test.zig`: End-to-end gRPC workflow tests (CreateTable, AddRecord, Scan)
+
+**Note**: Integration tests require the gRPC server to be running on port 50051. Start the server with `zig build run` before running integration tests.
+
 ## Project Structure
 
 - **`src/`**: Application source code.
@@ -72,3 +109,46 @@ zig build gen-proto
 This project vendors `gRPC-zig` and `zig-protobuf` in the `libs/` directory. These libraries have been patched locally to ensure compatibility with Zig 0.15.2 (specifically regarding `std.io` interface changes and `std.compress`).
 
 **Note**: Compression (gzip/deflate) is currently disabled in the transport layer due to changes in the Zig standard library's compression APIs.
+
+## Development Notes
+
+### Important Constraints
+
+**⚠️ NEVER edit files in the `libs/` directory.**
+- The vendored dependencies (`gRPC-zig`, `zig-protobuf`) have been extensively patched for Zig 0.15.2 compatibility
+- ~30 breaking API changes have been fixed across these libraries
+- Feel free to read these files for context, but modifications should not be made
+- See `progress.md` for details on all compatibility fixes
+
+### Version Requirements
+
+- **Zig**: Must be version 0.15.2 or later
+- The project will not compile with earlier Zig versions due to breaking API changes in ArrayList, Reader, JSON, and Compression APIs
+
+### Known Issues
+
+- `reader.any()` is deprecated but still works (migration to direct reader passing planned)
+- Debug warning: "Unknown field received" in protobuf decoding (cosmetic, does not affect functionality)
+
+### Memory Management
+
+This project has been thoroughly audited and fixed for memory leaks:
+- Zero memory leaks when run with `GeneralPurposeAllocator`
+- All storage keys/values are properly freed on shutdown
+- Client response buffers are cleaned up correctly
+- See `docs/memory-leak-*.md` for detailed documentation of fixes
+
+### Architecture Notes
+
+- **Storage**: In-memory key-value store using `std.StringHashMap`
+- **Concurrency**: Single-threaded server with sequential request handling
+- **Allocation**: Uses `GeneralPurposeAllocator` for leak detection during development
+- **Transport**: gRPC over HTTP/2 with disabled compression
+
+### Additional Documentation
+
+- `AGENT.md` - Agent-specific guidelines (libs/ directory constraint)
+- `progress.md` - Complete project history, all fixes, and technical learnings
+- `docs/memory-leak-*.md` - Detailed memory leak fix documentation
+- `docs/grpc-method-routing-fix.md` - gRPC routing implementation details
+- `plans/columnar-storage-plan.md` - Future columnar storage architecture

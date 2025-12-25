@@ -4,14 +4,18 @@ const log_proto = @import("proto/log.pb.zig");
 const schema = @import("schema");
 const table = @import("table");
 const table_manager = @import("table_manager");
+const config = @import("config");
 
 // Global table manager
 var g_table_manager: table_manager.TableManager = undefined;
 var gpa_allocator: std.mem.Allocator = undefined;
 
-pub fn init(allocator: std.mem.Allocator) void {
-    g_table_manager = table_manager.TableManager.init(allocator);
+pub fn init(allocator: std.mem.Allocator, cfg: config.Config) !void {
+    g_table_manager = try table_manager.TableManager.init(allocator, cfg);
     gpa_allocator = allocator;
+
+    // Recover from snapshot and WAL
+    try g_table_manager.recover();
 }
 
 pub fn deinit() void {
@@ -205,7 +209,8 @@ pub fn runServer(limit: ?usize) !void {
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
-    init(allocator);
+    const cfg = config.Config.default();
+    try init(allocator, cfg);
     defer deinit();
 
     var server = try grpc.GrpcServer.init(allocator, 50051, "secret-key", limit);

@@ -1,5 +1,19 @@
 const std = @import("std");
 
+/// A value that can be stored in a column (used for WAL serialization)
+pub const Value = struct {
+    int_value: ?i64 = null,
+    float_value: ?f64 = null,
+    string_value: ?[]const u8 = null,
+    bool_value: ?bool = null,
+};
+
+/// Column definition (used for schema serialization)
+pub const Column = struct {
+    name: []const u8,
+    column_type: ColumnType,
+};
+
 /// Column data types supported by Coleman
 pub const ColumnType = enum {
     int64,

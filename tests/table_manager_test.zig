@@ -2,11 +2,41 @@ const std = @import("std");
 const schema = @import("schema");
 const table = @import("table");
 const table_manager = @import("table_manager");
+const config = @import("config");
+
+fn getTestConfig(test_name: []const u8, allocator: std.mem.Allocator) !config.Config {
+    const wal_path = try std.fmt.allocPrint(allocator, ".zig-cache/test_{s}.wal", .{test_name});
+    const snapshot_dir = try std.fmt.allocPrint(allocator, ".zig-cache/test_{s}_snapshots", .{test_name});
+
+    return config.Config{
+        .wal_path = wal_path,
+        .snapshot_dir = snapshot_dir,
+        .snapshot_record_threshold = 1000,
+        .snapshot_wal_size_threshold = 10 * 1024 * 1024,
+        .host = "0.0.0.0",
+        .port = 50051,
+    };
+}
+
+fn cleanupTestData(test_name: []const u8, allocator: std.mem.Allocator) void {
+    const wal_path = std.fmt.allocPrint(allocator, ".zig-cache/test_{s}.wal", .{test_name}) catch return;
+    defer allocator.free(wal_path);
+    std.fs.cwd().deleteFile(wal_path) catch {};
+
+    const snapshot_dir = std.fmt.allocPrint(allocator, ".zig-cache/test_{s}_snapshots", .{test_name}) catch return;
+    defer allocator.free(snapshot_dir);
+    std.fs.cwd().deleteTree(snapshot_dir) catch {};
+}
 
 test "TableManager creation and basic operations" {
     const allocator = std.testing.allocator;
 
-    var manager = table_manager.TableManager.init(allocator);
+    const test_config = try getTestConfig("basic_ops", allocator);
+    defer allocator.free(test_config.wal_path);
+    defer allocator.free(test_config.snapshot_dir);
+    defer cleanupTestData("basic_ops", allocator);
+
+    var manager = try table_manager.TableManager.init(allocator, test_config);
     defer manager.deinit();
 
     try std.testing.expectEqual(@as(usize, 0), manager.tableCount());
@@ -15,7 +45,12 @@ test "TableManager creation and basic operations" {
 test "TableManager create and retrieve table" {
     const allocator = std.testing.allocator;
 
-    var manager = table_manager.TableManager.init(allocator);
+    const test_config = try getTestConfig("create_retrieve", allocator);
+    defer allocator.free(test_config.wal_path);
+    defer allocator.free(test_config.snapshot_dir);
+    defer cleanupTestData("create_retrieve", allocator);
+
+    var manager = try table_manager.TableManager.init(allocator, test_config);
     defer manager.deinit();
 
     const cols = [_]schema.ColumnDef{
@@ -39,7 +74,12 @@ test "TableManager create and retrieve table" {
 test "TableManager add records and scan" {
     const allocator = std.testing.allocator;
 
-    var manager = table_manager.TableManager.init(allocator);
+    const test_config = try getTestConfig("add_scan", allocator);
+    defer allocator.free(test_config.wal_path);
+    defer allocator.free(test_config.snapshot_dir);
+    defer cleanupTestData("add_scan", allocator);
+
+    var manager = try table_manager.TableManager.init(allocator, test_config);
     defer manager.deinit();
 
     const cols = [_]schema.ColumnDef{
@@ -84,7 +124,12 @@ test "TableManager add records and scan" {
 test "TableManager operations on non-existent table" {
     const allocator = std.testing.allocator;
 
-    var manager = table_manager.TableManager.init(allocator);
+    const test_config = try getTestConfig("nonexistent", allocator);
+    defer allocator.free(test_config.wal_path);
+    defer allocator.free(test_config.snapshot_dir);
+    defer cleanupTestData("nonexistent", allocator);
+
+    var manager = try table_manager.TableManager.init(allocator, test_config);
     defer manager.deinit();
 
     // Try to add record to non-existent table
@@ -106,7 +151,12 @@ test "TableManager operations on non-existent table" {
 test "TableManager drop table" {
     const allocator = std.testing.allocator;
 
-    var manager = table_manager.TableManager.init(allocator);
+    const test_config = try getTestConfig("drop", allocator);
+    defer allocator.free(test_config.wal_path);
+    defer allocator.free(test_config.snapshot_dir);
+    defer cleanupTestData("drop", allocator);
+
+    var manager = try table_manager.TableManager.init(allocator, test_config);
     defer manager.deinit();
 
     const cols = [_]schema.ColumnDef{
@@ -126,7 +176,12 @@ test "TableManager drop table" {
 test "TableManager get table names" {
     const allocator = std.testing.allocator;
 
-    var manager = table_manager.TableManager.init(allocator);
+    const test_config = try getTestConfig("get_names", allocator);
+    defer allocator.free(test_config.wal_path);
+    defer allocator.free(test_config.snapshot_dir);
+    defer cleanupTestData("get_names", allocator);
+
+    var manager = try table_manager.TableManager.init(allocator, test_config);
     defer manager.deinit();
 
     const cols = [_]schema.ColumnDef{
