@@ -8,6 +8,7 @@ service LogService {
   rpc CreateTable (CreateTableRequest) returns (CreateTableResponse) {}
   rpc AddRecord (AddRecordRequest) returns (AddRecordResponse) {}
   rpc Scan (ScanRequest) returns (ScanResponse) {}
+  rpc Filter (FilterRequest) returns (FilterResponse) {}
 }
 
 message PutRequest {
@@ -91,4 +92,32 @@ message ScanResponse {
 
 message Record {
   repeated Value values = 1;
+}
+
+// Comparison operators for filter predicates
+enum ComparisonOperator {
+  EQUAL = 0;
+  NOT_EQUAL = 1;
+  LESS_THAN = 2;
+  LESS_THAN_OR_EQUAL = 3;
+  GREATER_THAN = 4;
+  GREATER_THAN_OR_EQUAL = 5;
+}
+
+// Predicate for filtering rows
+message Predicate {
+  string column_name = 1;
+  ComparisonOperator operator = 2;
+  Value value = 3;
+}
+
+// Filter request (returns rows matching predicates)
+message FilterRequest {
+  string table_name = 1;
+  repeated Predicate predicates = 2;
+}
+
+message FilterResponse {
+  repeated Record records = 1;
+  string error = 2;
 }

@@ -1,6 +1,6 @@
 const std = @import("std");
 const grpc = @import("grpc");
-const log_proto = @import("proto/log.pb.zig");
+const log_proto = @import("proto");
 const schema = @import("schema");
 const table = @import("table");
 const table_manager = @import("table_manager");
@@ -204,6 +204,57 @@ fn handleScan(input: []const u8, allocator: std.mem.Allocator) anyerror![]u8 {
     return out_list.toOwnedSlice(allocator);
 }
 
+fn handleFilter(input: []const u8, allocator: std.mem.Allocator) anyerror![]u8 {
+    var stream = std.io.fixedBufferStream(input);
+    var reader = stream.reader();
+    var any_reader = reader.any();
+
+    const req = try log_proto.FilterRequest.decode(&any_reader, allocator);
+    var mutable_req = req;
+    defer mutable_req.deinit(allocator);
+
+    // Filter table
+    const rows = g_table_manager.filter(allocator, req.table_name, req.predicates.items) catch |err| {
+        var res = log_proto.FilterResponse{
+            .error_msg = @errorName(err),
+        };
+        var out_list: std.ArrayList(u8) = .{};
+        const writer = out_list.writer(allocator);
+        try res.encode(&writer, allocator);
+        return out_list.toOwnedSlice(allocator);
+    };
+    defer {
+        for (rows) |row| {
+            allocator.free(row);
+        }
+        allocator.free(rows);
+    }
+
+    // Convert to protobuf records ArrayList
+    var records: std.ArrayList(log_proto.Record) = .{};
+    defer {
+        for (records.items) |*record| {
+            record.values.deinit(allocator);
+        }
+        records.deinit(allocator);
+    }
+
+    for (rows) |row| {
+        var proto_values: std.ArrayList(log_proto.Value) = .{};
+        for (row) |val| {
+            try proto_values.append(allocator, tableValueToProto(val));
+        }
+        try records.append(allocator, log_proto.Record{ .values = proto_values });
+    }
+
+    var res = log_proto.FilterResponse{ .records = records };
+    var out_list: std.ArrayList(u8) = .{};
+    const writer = out_list.writer(allocator);
+    try res.encode(&writer, allocator);
+
+    return out_list.toOwnedSlice(allocator);
+}
+
 pub fn runServer(limit: ?usize) !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
@@ -241,6 +292,11 @@ pub fn runServer(limit: ?usize) !void {
     try server.handlers.append(allocator, .{
         .name = "log.LogService/Scan",
         .handler_fn = handleScan,
+    });
+
+    try server.handlers.append(allocator, .{
+        .name = "log.LogService/Filter",
+        .handler_fn = handleFilter,
     });
 
     try server.start();

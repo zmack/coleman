@@ -4,6 +4,8 @@ const table = @import("table");
 const wal_mod = @import("wal");
 const snapshot_mod = @import("snapshot");
 const config_mod = @import("config");
+const filter_mod = @import("filter");
+const pb = @import("proto");
 
 /// Manages multiple tables with thread-safe access
 pub const TableManager = struct {
@@ -174,6 +176,30 @@ pub const TableManager = struct {
         const rows = try allocator.alloc([]table.Value, tbl.row_count);
         for (0..tbl.row_count) |i| {
             rows[i] = try tbl.getRow(allocator, i);
+        }
+        return rows;
+    }
+
+    /// Filter a table (returns rows matching predicates)
+    pub fn filter(
+        self: *TableManager,
+        allocator: std.mem.Allocator,
+        table_name: []const u8,
+        predicates: []const pb.Predicate,
+    ) ![][]table.Value {
+        self.lock.lockShared();
+        defer self.lock.unlockShared();
+
+        const tbl = self.tables.get(table_name) orelse return error.TableNotFound;
+
+        // Get matching row indices
+        var matching_indices = try filter_mod.filterTable(allocator, tbl, predicates);
+        defer matching_indices.deinit(allocator);
+
+        // Retrieve the matching rows
+        const rows = try allocator.alloc([]table.Value, matching_indices.items.len);
+        for (matching_indices.items, 0..) |row_idx, i| {
+            rows[i] = try tbl.getRow(allocator, row_idx);
         }
         return rows;
     }
