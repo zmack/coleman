@@ -12,11 +12,11 @@ A high-performance columnar database implemented in Zig, with Apache Arrow-inspi
 - ✅ **Persistence**: Periodic snapshots with atomic writes
 - ✅ **Thread-Safe**: RwLock-based concurrent read access
 - ✅ **gRPC API**: High-performance Protocol Buffers over HTTP/2
+- ✅ **Filter Operations**: WHERE clause support with comprehensive predicates
 - ✅ **Zero Leaks**: Memory-safe with comprehensive leak detection
-- ✅ **Production-Ready**: 14/14 unit tests passing, crash recovery tested
+- ✅ **Production-Ready**: 22/22 unit tests passing, crash recovery tested
 
-**Coming Soon (Phase 3):**
-- Filter operations (WHERE clauses)
+**Coming Soon (Phase 3 - Final Item):**
 - Aggregate operations (SUM, COUNT, AVG, GROUP BY)
 
 ## Prerequisites
@@ -150,6 +150,13 @@ This project vendors `gRPC-zig` and `zig-protobuf` in the `libs/` directory. The
 
 - **Zig**: Must be version 0.15.2 or later
 - The project will not compile with earlier Zig versions due to breaking API changes in ArrayList, Reader, JSON, and Compression APIs
+
+### Version Control
+
+- **⚠️ This project uses Jujutsu (jj) for version control, NOT git**
+- Use `jj` commands instead of `git` commands when working with this repository
+- Examples: `jj status`, `jj log`, `jj new`, `jj commit`
+- See [Jujutsu documentation](https://martinvonz.github.io/jj/) for command reference
 
 ### Known Issues
 

@@ -155,93 +155,135 @@ TableManager (table_manager.zig) ← Coordinator
 
 ---
 
-### Phase 3: Query Operations (Week 3)
+### ⚠️ Phase 3: Query Operations (PARTIALLY COMPLETE)
 
 **Goal:** Scan, Filter, Aggregate working
 
-#### 3.1 Scan Implementation (1 day)
+**Status:** Scan and Filter complete, Aggregate pending
 
-**New file:** `src/query/scan.zig`
-**Extend protobuf:** Add `ScanRequest`/`ScanResponse`
-**Add handler:** `handleScan()` in `src/server.zig`
+#### ✅ 3.1 Scan Implementation (COMPLETED)
 
-#### 3.2 Filter Implementation (2 days)
+**What We Built:**
+- ✅ `TableManager.scan()` method in `src/table_manager.zig:166`
+- ✅ `ScanRequest`/`ScanResponse` in `proto/log.proto`
+- ✅ `handleScan()` in `src/server.zig:156`
+- ✅ gRPC handler registered
+- ✅ Tested in `src/client.zig` and `tests/integration_test.zig`
 
-**New file:** `src/query/filter.zig`
-- Predicate evaluation (comparison, logical operators)
-- Selection bitmap generation
-**Extend protobuf:** Add `FilterRequest`, `Predicate` messages
-**Add handler:** `handleFilter()` in `src/server.zig`
+**Deliverable:** ✅ Full table scans working via gRPC
 
-#### 3.3 Aggregate Implementation (2 days)
+#### ✅ 3.2 Filter Implementation (COMPLETED)
 
-**New file:** `src/query/aggregate.zig`
+**What We Built:**
+- ✅ `src/query/filter.zig` (169 lines) - Complete predicate evaluation engine:
+  - Comparison operators: EQUAL, NOT_EQUAL, LESS_THAN, LESS_THAN_OR_EQUAL, GREATER_THAN, GREATER_THAN_OR_EQUAL
+  - Support for all column types: int64, float64, string, bool
+  - Multiple predicates with AND logic
+  - Type-safe value comparisons
+- ✅ `TableManager.filter()` method in `src/table_manager.zig:184`
+- ✅ `FilterRequest`/`FilterResponse`/`Predicate`/`ComparisonOperator` in `proto/log.proto`
+- ✅ `handleFilter()` in `src/server.zig:207`
+- ✅ gRPC handler registered
+- ✅ **Comprehensive test coverage** in `tests/filter_test.zig` (338 lines, 8 tests):
+  - Basic equality on int64
+  - Greater than on int64
+  - Multiple predicates (AND logic)
+  - String equality
+  - Float64 comparison
+  - Bool equality
+  - No predicates returns all rows
+  - No matching rows
+
+**Deliverable:** ✅ WHERE clause filtering working via gRPC
+
+#### ⬜ 3.3 Aggregate Implementation (PENDING)
+
+**TODO:**
+- `src/query/aggregate.zig` - Aggregate computation engine
 - COUNT, SUM, AVG operations
 - GROUP BY support
-**Extend protobuf:** Add `AggregateRequest` messages
-**Add handler:** `handleAggregate()` in `src/server.zig`
+- `AggregateRequest`/`AggregateResponse` messages in protobuf
+- `handleAggregate()` in `src/server.zig`
+- Comprehensive aggregate tests
 
-**Deliverable:** Full query capabilities via gRPC
+**Deliverable:** ⬜ Full analytical query capabilities via gRPC
 
 ---
 
-### Phase 4: Testing + Polish (Week 4)
+### ⚠️ Phase 4: Testing + Polish (PARTIALLY COMPLETE)
 
 **Goal:** Production-ready with tests
 
-#### 4.1 Comprehensive Tests (2 days)
+#### ⚠️ 4.1 Comprehensive Tests (PARTIALLY COMPLETE)
 
-**New files:**
-- `tests/integration_test.zig` - End-to-end tests
-- `tests/wal_test.zig` - WAL and recovery
-- `tests/query_test.zig` - Query correctness
-- `tests/arrow_test.zig` - Arrow integration
+**✅ Completed:**
+- ✅ `tests/integration_test.zig` - End-to-end gRPC tests
+- ✅ `tests/schema_test.zig` - Schema and column type tests
+- ✅ `tests/table_test.zig` - Table operations tests
+- ✅ `tests/table_manager_test.zig` - Table manager tests
+- ✅ `tests/filter_test.zig` - Filter predicate tests (8 comprehensive tests)
+- ✅ **22/22 unit tests passing** with zero memory leaks
 
-#### 4.2 Performance Benchmarking (1 day)
+**⬜ TODO:**
+- ⬜ `tests/wal_test.zig` - WAL replay and crash recovery tests
+- ⬜ `tests/aggregate_test.zig` - Aggregate operation tests (once aggregate is implemented)
 
+#### ⬜ 4.2 Performance Benchmarking (PENDING)
+
+**TODO:**
 - Insert 1M records
-- Run various queries
+- Run various queries (Scan, Filter, Aggregate)
 - Measure throughput and latency
+- Identify bottlenecks
 
-#### 4.3 Documentation (1 day)
+#### ⬜ 4.3 Documentation (PENDING)
 
-**New files:**
-- `docs/arrow-integration.md`
-- `docs/wal-format.md`
-- `docs/query-engine.md`
-- `docs/api-migration.md`
+**TODO:**
+- `docs/filter-query-guide.md` - Filter/WHERE clause usage examples
+- `docs/aggregate-query-guide.md` - Aggregate operation examples
+- Update `README.md` with Filter examples
 
-**Update:** `README.md` with new API examples
+**Note:** Some documentation already exists:
+- `docs/filter-implementation-guide.md` (exists)
+- `docs/memory-leak-*.md` (exists)
+- `docs/grpc-method-routing-fix.md` (exists)
 
-#### 4.4 CLI Improvements (1 day)
+#### ⬜ 4.4 CLI Improvements (PENDING)
 
+**TODO:**
 - Config file support (`coleman.toml`)
-- Better logging
-- `--stats` flag
+- Better logging (structured logs)
+- `--stats` flag for performance metrics
+- Client tool improvements
 
-**Deliverable:** Production-ready columnar database
+**Deliverable:** ⬜ Production-ready columnar database with benchmarks and documentation
 
 ---
 
-## Critical Files to Modify/Create
+## Critical Files
 
-### New Files (10)
-1. `src/schema.zig` - Schema definitions
-2. `src/table.zig` - Arrow-backed table storage
-3. `src/table_manager.zig` - Multi-table coordinator
-4. `src/wal.zig` - Write-ahead log
-5. `src/snapshot.zig` - Snapshot management
-6. `src/config.zig` - Configuration
-7. `src/query/scan.zig` - Scan operations
-8. `src/query/filter.zig` - Filter predicates
-9. `src/query/aggregate.zig` - Aggregations
-10. `libs/arrow-zig/` - Vendored Arrow library
+### ✅ Implemented Files (9)
+1. ✅ `src/schema.zig` - Schema definitions and column types
+2. ✅ `src/table.zig` - Arrow-inspired columnar storage
+3. ✅ `src/table_manager.zig` - Multi-table coordinator with RwLock
+4. ✅ `src/wal.zig` - Write-ahead log with CRC32
+5. ✅ `src/snapshot.zig` - Snapshot management with atomic writes
+6. ✅ `src/config.zig` - Configuration system
+7. ✅ `src/query/filter.zig` - Filter predicate evaluation (169 lines)
+8. ✅ `src/server.zig` - gRPC handlers (CreateTable, AddRecord, Scan, Filter)
+9. ✅ `proto/log.proto` - Extended protobuf API with columnar operations
 
-### Modified Files (4)
-1. `src/server.zig` - Add new RPC handlers
-2. `proto/log.proto` - Extend with columnar API
-3. `build.zig` - Add arrow-zig dependency
-4. `src/client.zig` - Update test client
+### ⬜ Remaining Files (1)
+1. ⬜ `src/query/aggregate.zig` - Aggregate operations (SUM, COUNT, AVG, GROUP BY)
+
+### ✅ Test Files (5)
+1. ✅ `tests/schema_test.zig` - Schema and column type tests
+2. ✅ `tests/table_test.zig` - Table operations tests
+3. ✅ `tests/table_manager_test.zig` - Table manager tests
+4. ✅ `tests/filter_test.zig` - Filter predicate tests (8 tests, 338 lines)
+5. ✅ `tests/integration_test.zig` - End-to-end gRPC tests
+
+**Note:** Custom Arrow implementation used instead of vendored library (arrow-zig incompatible with Zig 0.15.2)
 
 ## Thread Safety Strategy
 
@@ -263,11 +305,11 @@ TableManager (table_manager.zig) ← Coordinator
 - ✅ Records can be inserted and persisted to WAL
 - ✅ Snapshots created periodically
 - ⚠️  Data survives server restart (WAL replay partially implemented)
-- ✅ Scan returns all records (basic implementation)
-- ⬜ Filter executes WHERE clauses correctly
+- ✅ Scan returns all records (implementation complete)
+- ✅ Filter executes WHERE clauses correctly (comprehensive implementation with 8 tests)
 - ⬜ Aggregate computes SUM/COUNT/AVG
 - ✅ Zero memory leaks (GPA verified in tests)
-- ✅ Comprehensive test coverage (14/14 unit tests passing)
+- ✅ Comprehensive test coverage (22/22 unit tests passing)
 
 **Legend:**
 - ✅ Complete
@@ -289,9 +331,12 @@ TableManager (table_manager.zig) ← Coordinator
 
 - **✅ Phase 1 (Complete):** Arrow integration + in-memory storage
 - **✅ Phase 2 (Complete):** WAL + persistence
-- **⬜ Phase 3 (Pending):** Query operations (Scan, Filter, Aggregate)
+- **⚠️ Phase 3 (75% Complete):** Query operations
+  - ✅ Scan implementation complete
+  - ✅ Filter implementation complete (8 comprehensive tests)
+  - ⬜ Aggregate operations pending (SUM, COUNT, AVG, GROUP BY)
 - **⬜ Phase 4 (Pending):** Testing + documentation + polish
 
-**Progress:** 2/4 phases complete (50%)
+**Progress:** 2.75/4 phases complete (~69%)
 
-**Current Status:** Persistence layer implemented and tested. Ready for Phase 3 query operations.
+**Current Status:** Query engine mostly complete. Scan and Filter working with comprehensive tests (22/22 passing). Only Aggregate operations remain for full Phase 3 completion.
