@@ -227,13 +227,137 @@ TableManager (table_manager.zig) ← Coordinator
 
 **Deliverable:** ✅ Basic analytical query capabilities via gRPC (COUNT, SUM with WHERE clauses)
 
+#### ⬜ 3.4 Extended Aggregates (PENDING)
+
+**Goal:** Add AVG, MIN, MAX aggregate functions
+
+**What to Build:**
+- ⬜ AVG operation (average = SUM / COUNT)
+- ⬜ MIN operation (minimum value in column)
+- ⬜ MAX operation (maximum value in column)
+- ⬜ Extend `AggregateFunction` enum in protobuf
+- ⬜ Add aggregate functions to `aggregate.zig`
+- ⬜ Comprehensive tests for each new aggregate
+
+**Implementation Notes:**
+- AVG: Complexity LOW - reuse SUM and COUNT logic
+- MIN/MAX: Complexity MEDIUM - reuse `compareValues()` from filter.zig
+- Can reuse existing predicate support (WHERE clauses)
+- Return types: AVG → float64, MIN/MAX → same as column type
+
+**Deliverable:** ⬜ Full single-column aggregate support (COUNT, SUM, AVG, MIN, MAX)
+
 ---
 
-### ⚠️ Phase 4: Testing + Polish (PARTIALLY COMPLETE)
+### ⬜ Phase 4: Robust Interactive Client (PENDING)
+
+**Goal:** Build a feature-rich client that exercises all Coleman capabilities
+
+**Status:** Not started
+
+#### 4.1 Interactive CLI Client
+
+**What to Build:**
+- ⬜ REPL-style interactive shell
+- ⬜ SQL-like query syntax (or custom DSL)
+- ⬜ Command history and editing (readline/linenoise)
+- ⬜ Tab completion for table/column names
+- ⬜ Pretty-printed table output
+- ⬜ Error handling and user-friendly messages
+
+**Example Session:**
+```
+coleman> CREATE TABLE users (id INT64, name STRING, age INT64, score FLOAT64);
+Table 'users' created successfully.
+
+coleman> INSERT INTO users VALUES (1, 'Alice', 30, 95.5);
+1 record inserted.
+
+coleman> SELECT * FROM users WHERE age > 25;
+┌────┬───────┬─────┬───────┐
+│ id │ name  │ age │ score │
+├────┼───────┼─────┼───────┤
+│  1 │ Alice │  30 │ 95.5  │
+└────┴───────┴─────┴───────┘
+1 row returned.
+
+coleman> SELECT COUNT(*), AVG(score) FROM users WHERE age > 25;
+┌───────┬────────────┐
+│ count │ avg_score  │
+├───────┼────────────┤
+│     1 │       95.5 │
+└───────┴────────────┘
+```
+
+#### 4.2 Query Builder / DSL
+
+**What to Build:**
+- ⬜ Parser for SQL-like syntax or custom query language
+- ⬜ Query plan builder (translate to gRPC calls)
+- ⬜ Support for:
+  - CREATE TABLE
+  - INSERT (single and bulk)
+  - SELECT with columns or *
+  - WHERE clauses with AND logic
+  - Aggregates (COUNT, SUM, AVG, MIN, MAX)
+  - LIMIT (client-side)
+  - ORDER BY (client-side initially)
+
+**Alternative Approach:**
+- Start with simple command-based syntax instead of full SQL parser
+- Commands: `create`, `insert`, `scan`, `filter`, `aggregate`
+- Easier to implement, can evolve to SQL-like later
+
+#### 4.3 Bulk Data Loading
+
+**What to Build:**
+- ⬜ CSV import functionality
+- ⬜ JSON import functionality
+- ⬜ Batch insert optimization (multiple records per RPC)
+- ⬜ Progress indicators for large imports
+- ⬜ Error handling and partial import recovery
+
+**Example:**
+```
+coleman> LOAD CSV users.csv INTO users;
+Loading... ████████████████████ 10000/10000 rows (100%)
+Loaded 10000 records in 2.3s (4347 records/sec)
+```
+
+#### 4.4 Data Export
+
+**What to Build:**
+- ⬜ Export to CSV
+- ⬜ Export to JSON
+- ⬜ Formatted table output (ASCII tables)
+- ⬜ Support for piping query results
+
+#### 4.5 Client-Side Features
+
+**What to Build:**
+- ⬜ Connection management (connect/disconnect)
+- ⬜ Multiple server support (switch between servers)
+- ⬜ Local result caching for exploration
+- ⬜ Query timing and performance metrics
+- ⬜ Transaction-like semantics (if we add later)
+
+#### 4.6 Testing and Validation
+
+**What to Build:**
+- ⬜ End-to-end integration tests using the client
+- ⬜ Stress tests with large datasets
+- ⬜ Concurrency tests (multiple clients)
+- ⬜ Example datasets and queries
+
+**Deliverable:** ⬜ Production-ready interactive client that showcases all Coleman features
+
+---
+
+### ⬜ Phase 5: Testing + Polish (PARTIALLY COMPLETE)
 
 **Goal:** Production-ready with tests
 
-#### ⚠️ 4.1 Comprehensive Tests (PARTIALLY COMPLETE)
+#### ⚠️ 5.1 Comprehensive Tests (PARTIALLY COMPLETE)
 
 **✅ Completed:**
 - ✅ `tests/integration_test.zig` - End-to-end gRPC tests
@@ -247,7 +371,7 @@ TableManager (table_manager.zig) ← Coordinator
 **⬜ TODO:**
 - ⬜ `tests/wal_test.zig` - WAL replay and crash recovery tests
 
-#### ⬜ 4.2 Performance Benchmarking (PENDING)
+#### ⬜ 5.2 Performance Benchmarking (PENDING)
 
 **TODO:**
 - Insert 1M records
@@ -255,7 +379,7 @@ TableManager (table_manager.zig) ← Coordinator
 - Measure throughput and latency
 - Identify bottlenecks
 
-#### ⬜ 4.3 Documentation (PENDING)
+#### ⬜ 5.3 Documentation (PENDING)
 
 **TODO:**
 - `docs/filter-query-guide.md` - Filter/WHERE clause usage examples
@@ -266,16 +390,74 @@ TableManager (table_manager.zig) ← Coordinator
 - `docs/filter-implementation-guide.md` (exists)
 - `docs/memory-leak-*.md` (exists)
 - `docs/grpc-method-routing-fix.md` (exists)
+- `docs/aggregate-implementation-walkthrough.md` (exists)
 
-#### ⬜ 4.4 CLI Improvements (PENDING)
+#### ⬜ 5.4 Server Improvements (PENDING)
 
 **TODO:**
 - Config file support (`coleman.toml`)
 - Better logging (structured logs)
 - `--stats` flag for performance metrics
-- Client tool improvements
+- Server metrics and monitoring
 
 **Deliverable:** ⬜ Production-ready columnar database with benchmarks and documentation
+
+---
+
+### ⬜ Phase 6: GROUP BY Support (PENDING)
+
+**Goal:** Full analytical query capabilities with grouping
+
+**Status:** Not started
+
+#### 6.1 GROUP BY Implementation
+
+**What to Build:**
+- ⬜ `groupBy()` function in `aggregate.zig`
+- ⬜ HashMap-based grouping (group rows by column value)
+- ⬜ Support for multiple aggregates per group
+- ⬜ New protobuf messages:
+  - `GroupByRequest` (table_name, group_column, aggregates[], predicates[])
+  - `GroupByResponse` (groups[], error)
+  - `GroupResult` (group_key, aggregate_results[])
+- ⬜ Server handler `handleGroupBy()`
+- ⬜ gRPC registration
+
+**Implementation Challenges:**
+- **HashMap with Value keys**: Need custom hash function for `table.Value` union
+- **Memory management**: Groups contain dynamic row lists
+- **Multiple aggregates**: Single pass over data, compute all aggregates per group
+- **Result serialization**: More complex response structure
+
+**Example Query:**
+```sql
+SELECT category, COUNT(*), SUM(amount), AVG(price)
+FROM products
+WHERE price > 10.0
+GROUP BY category
+```
+
+#### 6.2 Advanced Grouping Features
+
+**What to Build:**
+- ⬜ Multiple aggregates in single GROUP BY query
+- ⬜ HAVING clause (filter groups by aggregate values)
+- ⬜ ORDER BY on group results (client-side or server-side)
+- ⬜ LIMIT on group results
+- ⬜ GROUP BY multiple columns (composite keys)
+
+#### 6.3 Testing
+
+**What to Build:**
+- ⬜ `tests/group_by_test.zig` - Comprehensive GROUP BY tests
+- ⬜ Single aggregate per group
+- ⬜ Multiple aggregates per group
+- ⬜ GROUP BY with WHERE predicates
+- ⬜ Empty groups
+- ⬜ Large number of groups (cardinality tests)
+- ⬜ Error cases (non-existent columns, etc.)
+
+**Deliverable:** ⬜ Full SQL-like analytical query support with GROUP BY
 
 ---
 
@@ -355,12 +537,27 @@ TableManager (table_manager.zig) ← Coordinator
 
 - **✅ Phase 1 (Complete):** Arrow integration + in-memory storage
 - **✅ Phase 2 (Complete):** WAL + persistence
-- **⚠️ Phase 3 (83% Complete):** Query operations
-  - ✅ Scan implementation complete
-  - ✅ Filter implementation complete (8 comprehensive tests)
-  - ⚠️ Aggregate operations: SUM, COUNT complete (10 tests); AVG/MIN/MAX/GROUP BY deferred
-- **⬜ Phase 4 (Pending):** Testing + documentation + polish
+- **⚠️ Phase 3 (75% Complete):** Query operations
+  - ✅ 3.1 Scan implementation complete
+  - ✅ 3.2 Filter implementation complete (8 comprehensive tests)
+  - ✅ 3.3 Basic Aggregates: COUNT, SUM complete (10 tests)
+  - ⬜ 3.4 Extended Aggregates: AVG, MIN, MAX (pending)
+- **⬜ Phase 4 (Pending):** Robust Interactive Client
+  - Interactive CLI with REPL
+  - Query builder / SQL-like DSL
+  - Bulk data loading (CSV/JSON)
+  - Data export capabilities
+  - Client-side features (caching, metrics)
+- **⬜ Phase 5 (Partially Complete):** Testing + documentation + polish
+  - ⚠️ Tests: 32/32 unit tests passing
+  - ⬜ Performance benchmarking
+  - ⬜ Documentation
+  - ⬜ Server improvements
+- **⬜ Phase 6 (Pending):** GROUP BY Support
+  - Full analytical queries with grouping
+  - Multiple aggregates per group
+  - HAVING clause support
 
-**Progress:** 2.83/4 phases complete (~71%)
+**Progress:** 2.75/6 phases complete (~46%)
 
-**Current Status:** Core query engine complete. Scan, Filter, and basic Aggregate (COUNT, SUM) working with comprehensive test coverage (32/32 tests passing). Advanced aggregates (AVG, MIN, MAX, GROUP BY) deferred to future development.
+**Current Status:** Core query engine complete. Scan, Filter, and basic Aggregate (COUNT, SUM) working with comprehensive test coverage (32/32 tests passing). Ready to build robust client or extend aggregates (AVG, MIN, MAX) before tackling GROUP BY.
