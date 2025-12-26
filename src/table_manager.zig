@@ -5,6 +5,7 @@ const wal_mod = @import("wal");
 const snapshot_mod = @import("snapshot");
 const config_mod = @import("config");
 const filter_mod = @import("filter");
+const aggregate_mod = @import("aggregate");
 const pb = @import("proto");
 
 /// Manages multiple tables with thread-safe access
@@ -202,6 +203,24 @@ pub const TableManager = struct {
             rows[i] = try tbl.getRow(allocator, row_idx);
         }
         return rows;
+    }
+
+    /// Aggregate a table (returns a single scalar value)
+    pub fn aggregate(
+        self: *TableManager,
+        allocator: std.mem.Allocator,
+        table_name: []const u8,
+        column_name: []const u8,
+        function: pb.AggregateFunction,
+        predicates: []const pb.Predicate,
+    ) !table.Value {
+        self.lock.lockShared();
+        defer self.lock.unlockShared();
+
+        const tbl = self.tables.get(table_name) orelse return error.TableNotFound;
+
+        // Delegate to aggregate module
+        return aggregate_mod.aggregateTable(allocator, tbl, column_name, function, predicates);
     }
 
     /// Check if snapshot is needed and trigger if thresholds met

@@ -2,7 +2,7 @@
 
 A high-performance columnar database implemented in Zig, with Apache Arrow-inspired storage, Write-Ahead Logging, and gRPC/Protocol Buffers for communication.
 
-**Current Status:** Production-ready columnar storage with persistence. Supports typed schemas, efficient columnar data storage, WAL for durability, and periodic snapshots.
+**Current Status:** Production-ready columnar storage with persistence. Supports typed schemas, efficient columnar data storage, WAL for durability, periodic snapshots, and analytical queries.
 
 ## Features
 
@@ -13,11 +13,14 @@ A high-performance columnar database implemented in Zig, with Apache Arrow-inspi
 - ✅ **Thread-Safe**: RwLock-based concurrent read access
 - ✅ **gRPC API**: High-performance Protocol Buffers over HTTP/2
 - ✅ **Filter Operations**: WHERE clause support with comprehensive predicates
+- ✅ **Aggregate Operations**: COUNT and SUM with predicate support (WHERE clauses)
 - ✅ **Zero Leaks**: Memory-safe with comprehensive leak detection
-- ✅ **Production-Ready**: 22/22 unit tests passing, crash recovery tested
+- ✅ **Production-Ready**: 32/32 unit tests passing, crash recovery tested
 
-**Coming Soon (Phase 3 - Final Item):**
-- Aggregate operations (SUM, COUNT, AVG, GROUP BY)
+**Future Enhancements:**
+- Additional aggregate functions (AVG, MIN, MAX)
+- GROUP BY support
+- Multiple aggregates in single query
 
 ## Prerequisites
 

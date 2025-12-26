@@ -255,6 +255,45 @@ fn handleFilter(input: []const u8, allocator: std.mem.Allocator) anyerror![]u8 {
     return out_list.toOwnedSlice(allocator);
 }
 
+fn handleAggregate(input: []const u8, allocator: std.mem.Allocator) anyerror![]u8 {
+    var stream = std.io.fixedBufferStream(input);
+    var reader = stream.reader();
+    var any_reader = reader.any();
+
+    const req = try log_proto.AggregateRequest.decode(&any_reader, allocator);
+    var mutable_req = req;
+    defer mutable_req.deinit(allocator);
+
+    // Call TableManager.aggregate
+    const result = g_table_manager.aggregate(
+        allocator,
+        req.table_name,
+        req.column_name,
+        req.function,
+        req.predicates.items,
+    ) catch |err| {
+        // Error handling - return error response
+        var res = log_proto.AggregateResponse{
+            .error_msg = @errorName(err),
+        };
+        var out_list: std.ArrayList(u8) = .{};
+        const writer = out_list.writer(allocator);
+        try res.encode(&writer, allocator);
+        return out_list.toOwnedSlice(allocator);
+    };
+
+    // Convert result to protobuf type
+    const proto_result = tableValueToProto(result);
+
+    // Serialize and return response
+    var res = log_proto.AggregateResponse{ .result = proto_result };
+    var out_list: std.ArrayList(u8) = .{};
+    const writer = out_list.writer(allocator);
+    try res.encode(&writer, allocator);
+
+    return out_list.toOwnedSlice(allocator);
+}
+
 pub fn runServer(limit: ?usize) !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
@@ -297,6 +336,11 @@ pub fn runServer(limit: ?usize) !void {
     try server.handlers.append(allocator, .{
         .name = "log.LogService/Filter",
         .handler_fn = handleFilter,
+    });
+
+    try server.handlers.append(allocator, .{
+        .name = "log.LogService/Aggregate",
+        .handler_fn = handleAggregate,
     });
 
     try server.start();

@@ -155,11 +155,11 @@ TableManager (table_manager.zig) ← Coordinator
 
 ---
 
-### ⚠️ Phase 3: Query Operations (PARTIALLY COMPLETE)
+### ⚠️ Phase 3: Query Operations (MOSTLY COMPLETE)
 
 **Goal:** Scan, Filter, Aggregate working
 
-**Status:** Scan and Filter complete, Aggregate pending
+**Status:** Scan and Filter complete, Aggregate partially complete (SUM/COUNT done, AVG/MIN/MAX/GROUP BY deferred)
 
 #### ✅ 3.1 Scan Implementation (COMPLETED)
 
@@ -196,17 +196,36 @@ TableManager (table_manager.zig) ← Coordinator
 
 **Deliverable:** ✅ WHERE clause filtering working via gRPC
 
-#### ⬜ 3.3 Aggregate Implementation (PENDING)
+#### ⚠️ 3.3 Aggregate Implementation (PARTIALLY COMPLETE)
 
-**TODO:**
-- `src/query/aggregate.zig` - Aggregate computation engine
-- COUNT, SUM, AVG operations
+**What We Built:**
+- ✅ `src/query/aggregate.zig` (80 lines) - Aggregate computation engine:
+  - COUNT operation - count matching rows
+  - SUM operation - sum numeric values (int64, float64)
+  - Type-safe dispatch based on column type
+  - Reuses filter infrastructure for predicate support
+- ✅ `TableManager.aggregate()` method in `src/table_manager.zig:208`
+- ✅ `AggregateRequest`/`AggregateResponse`/`AggregateFunction` in `proto/log.proto`
+- ✅ `handleAggregate()` in `src/server.zig:258`
+- ✅ gRPC handler registered
+- ✅ **Comprehensive test coverage** in `tests/aggregate_test.zig` (10 tests):
+  - COUNT all rows (no predicates)
+  - COUNT with predicates (filtered)
+  - SUM on int64 column
+  - SUM on float64 column
+  - SUM with predicates
+  - COUNT on empty table
+  - SUM with no matching rows
+  - Error cases: SUM on string, non-existent column/table
+
+**⬜ Deferred to Later:**
+- AVG operation (requires SUM + COUNT combination)
+- MIN/MAX operations
 - GROUP BY support
-- `AggregateRequest`/`AggregateResponse` messages in protobuf
-- `handleAggregate()` in `src/server.zig`
-- Comprehensive aggregate tests
+- Multiple aggregates in single query
+- DISTINCT modifier
 
-**Deliverable:** ⬜ Full analytical query capabilities via gRPC
+**Deliverable:** ✅ Basic analytical query capabilities via gRPC (COUNT, SUM with WHERE clauses)
 
 ---
 
@@ -222,11 +241,11 @@ TableManager (table_manager.zig) ← Coordinator
 - ✅ `tests/table_test.zig` - Table operations tests
 - ✅ `tests/table_manager_test.zig` - Table manager tests
 - ✅ `tests/filter_test.zig` - Filter predicate tests (8 comprehensive tests)
-- ✅ **22/22 unit tests passing** with zero memory leaks
+- ✅ `tests/aggregate_test.zig` - Aggregate operation tests (10 comprehensive tests)
+- ✅ **32/32 unit tests passing** with zero memory leaks
 
 **⬜ TODO:**
 - ⬜ `tests/wal_test.zig` - WAL replay and crash recovery tests
-- ⬜ `tests/aggregate_test.zig` - Aggregate operation tests (once aggregate is implemented)
 
 #### ⬜ 4.2 Performance Benchmarking (PENDING)
 
@@ -262,7 +281,7 @@ TableManager (table_manager.zig) ← Coordinator
 
 ## Critical Files
 
-### ✅ Implemented Files (9)
+### ✅ Implemented Files (10)
 1. ✅ `src/schema.zig` - Schema definitions and column types
 2. ✅ `src/table.zig` - Arrow-inspired columnar storage
 3. ✅ `src/table_manager.zig` - Multi-table coordinator with RwLock
@@ -270,18 +289,23 @@ TableManager (table_manager.zig) ← Coordinator
 5. ✅ `src/snapshot.zig` - Snapshot management with atomic writes
 6. ✅ `src/config.zig` - Configuration system
 7. ✅ `src/query/filter.zig` - Filter predicate evaluation (169 lines)
-8. ✅ `src/server.zig` - gRPC handlers (CreateTable, AddRecord, Scan, Filter)
-9. ✅ `proto/log.proto` - Extended protobuf API with columnar operations
+8. ✅ `src/query/aggregate.zig` - Aggregate operations (80 lines) - COUNT, SUM implemented
+9. ✅ `src/server.zig` - gRPC handlers (CreateTable, AddRecord, Scan, Filter, Aggregate)
+10. ✅ `proto/log.proto` - Extended protobuf API with columnar operations
 
-### ⬜ Remaining Files (1)
-1. ⬜ `src/query/aggregate.zig` - Aggregate operations (SUM, COUNT, AVG, GROUP BY)
+### ⬜ Future Extensions
+1. ⬜ AVG, MIN, MAX aggregate functions
+2. ⬜ GROUP BY support
+3. ⬜ Multiple aggregates in single query
+4. ⬜ DISTINCT modifier
 
-### ✅ Test Files (5)
+### ✅ Test Files (6)
 1. ✅ `tests/schema_test.zig` - Schema and column type tests
 2. ✅ `tests/table_test.zig` - Table operations tests
 3. ✅ `tests/table_manager_test.zig` - Table manager tests
 4. ✅ `tests/filter_test.zig` - Filter predicate tests (8 tests, 338 lines)
-5. ✅ `tests/integration_test.zig` - End-to-end gRPC tests
+5. ✅ `tests/aggregate_test.zig` - Aggregate operation tests (10 tests)
+6. ✅ `tests/integration_test.zig` - End-to-end gRPC tests
 
 **Note:** Custom Arrow implementation used instead of vendored library (arrow-zig incompatible with Zig 0.15.2)
 
@@ -307,9 +331,9 @@ TableManager (table_manager.zig) ← Coordinator
 - ⚠️  Data survives server restart (WAL replay partially implemented)
 - ✅ Scan returns all records (implementation complete)
 - ✅ Filter executes WHERE clauses correctly (comprehensive implementation with 8 tests)
-- ⬜ Aggregate computes SUM/COUNT/AVG
+- ⚠️  Aggregate computes SUM/COUNT (complete), AVG/MIN/MAX/GROUP BY (deferred)
 - ✅ Zero memory leaks (GPA verified in tests)
-- ✅ Comprehensive test coverage (22/22 unit tests passing)
+- ✅ Comprehensive test coverage (32/32 unit tests passing)
 
 **Legend:**
 - ✅ Complete
@@ -331,12 +355,12 @@ TableManager (table_manager.zig) ← Coordinator
 
 - **✅ Phase 1 (Complete):** Arrow integration + in-memory storage
 - **✅ Phase 2 (Complete):** WAL + persistence
-- **⚠️ Phase 3 (75% Complete):** Query operations
+- **⚠️ Phase 3 (83% Complete):** Query operations
   - ✅ Scan implementation complete
   - ✅ Filter implementation complete (8 comprehensive tests)
-  - ⬜ Aggregate operations pending (SUM, COUNT, AVG, GROUP BY)
+  - ⚠️ Aggregate operations: SUM, COUNT complete (10 tests); AVG/MIN/MAX/GROUP BY deferred
 - **⬜ Phase 4 (Pending):** Testing + documentation + polish
 
-**Progress:** 2.75/4 phases complete (~69%)
+**Progress:** 2.83/4 phases complete (~71%)
 
-**Current Status:** Query engine mostly complete. Scan and Filter working with comprehensive tests (22/22 passing). Only Aggregate operations remain for full Phase 3 completion.
+**Current Status:** Core query engine complete. Scan, Filter, and basic Aggregate (COUNT, SUM) working with comprehensive test coverage (32/32 tests passing). Advanced aggregates (AVG, MIN, MAX, GROUP BY) deferred to future development.

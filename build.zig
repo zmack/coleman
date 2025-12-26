@@ -165,6 +165,17 @@ pub fn build(b: *std.Build) void {
         },
     });
 
+    const aggregate_mod_main = b.addModule("aggregate", .{
+        .root_source_file = b.path("src/query/aggregate.zig"),
+        .target = target,
+        .imports = &.{
+            .{ .name = "schema", .module = schema_mod_main },
+            .{ .name = "table", .module = table_mod_main },
+            .{ .name = "proto", .module = proto_mod_main },
+            .{ .name = "filter", .module = filter_mod_main },
+        },
+    });
+
     const table_manager_mod_main = b.addModule("table_manager", .{
         .root_source_file = b.path("src/table_manager.zig"),
         .target = target,
@@ -176,6 +187,7 @@ pub fn build(b: *std.Build) void {
             .{ .name = "snapshot", .module = snapshot_mod_main },
             .{ .name = "proto", .module = proto_mod_main },
             .{ .name = "filter", .module = filter_mod_main },
+            .{ .name = "aggregate", .module = aggregate_mod_main },
         },
     });
 
@@ -248,6 +260,7 @@ pub fn build(b: *std.Build) void {
         .{ .path = "tests/table_test.zig", .name = "table" },
         .{ .path = "tests/table_manager_test.zig", .name = "table_manager" },
         .{ .path = "tests/filter_test.zig", .name = "filter" },
+        .{ .path = "tests/aggregate_test.zig", .name = "aggregate" },
     };
 
     const integration_tests = [_]TestFile{
@@ -309,6 +322,17 @@ pub fn build(b: *std.Build) void {
         },
     });
 
+    const aggregate_mod_test = b.addModule("aggregate", .{
+        .root_source_file = b.path("src/query/aggregate.zig"),
+        .target = target,
+        .imports = &.{
+            .{ .name = "schema", .module = schema_mod },
+            .{ .name = "table", .module = table_mod },
+            .{ .name = "proto", .module = proto_mod_test },
+            .{ .name = "filter", .module = filter_mod_test },
+        },
+    });
+
     const table_manager_mod = b.addModule("table_manager", .{
         .root_source_file = b.path("src/table_manager.zig"),
         .target = target,
@@ -320,6 +344,7 @@ pub fn build(b: *std.Build) void {
             .{ .name = "snapshot", .module = snapshot_mod },
             .{ .name = "proto", .module = proto_mod_test },
             .{ .name = "filter", .module = filter_mod_test },
+            .{ .name = "aggregate", .module = aggregate_mod_test },
         },
     });
 
@@ -348,6 +373,13 @@ pub fn build(b: *std.Build) void {
             unit_test.root_module.addImport("config", config_mod);
         }
         if (std.mem.indexOf(u8, test_file.path, "filter_test") != null or std.mem.indexOf(u8, test_file.path, "filter_debug") != null) {
+            unit_test.root_module.addImport("schema", schema_mod);
+            unit_test.root_module.addImport("table", table_mod);
+            unit_test.root_module.addImport("table_manager", table_manager_mod);
+            unit_test.root_module.addImport("config", config_mod);
+            unit_test.root_module.addImport("proto", proto_mod_test);
+        }
+        if (std.mem.indexOf(u8, test_file.path, "aggregate_test") != null) {
             unit_test.root_module.addImport("schema", schema_mod);
             unit_test.root_module.addImport("table", table_mod);
             unit_test.root_module.addImport("table_manager", table_manager_mod);

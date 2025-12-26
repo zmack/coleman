@@ -867,3 +867,97 @@ pub const FilterResponse = struct {
         return protobuf.json.stringify(@This(), self, jws);
     }
 };
+
+// Aggregate function enum
+pub const AggregateFunction = enum(i32) {
+    COUNT = 0,
+    SUM = 1,
+};
+
+pub const AggregateRequest = struct {
+    table_name: []const u8 = &.{},
+    column_name: []const u8 = &.{},
+    function: AggregateFunction = .COUNT,
+    predicates: std.ArrayList(Predicate) = .empty,
+
+    pub const _desc_table = .{
+        .table_name = fd(1, .{ .scalar = .string }),
+        .column_name = fd(2, .{ .scalar = .string }),
+        .function = fd(3, .{ .@"enum" = {} }),
+        .predicates = fd(4, .{ .repeated = .{ .submessage = {} } }),
+    };
+
+    pub fn encode(self: @This(), writer: anytype, allocator: std.mem.Allocator) !void {
+        return protobuf.encode(writer, allocator, self);
+    }
+
+    pub fn decode(reader: anytype, allocator: std.mem.Allocator) !@This() {
+        return protobuf.decode(@This(), reader, allocator);
+    }
+
+    pub fn deinit(self: *@This(), allocator: std.mem.Allocator) void {
+        return protobuf.deinit(allocator, self);
+    }
+
+    pub fn dupe(self: @This(), allocator: std.mem.Allocator) std.mem.Allocator.Error!@This() {
+        return protobuf.dupe(@This(), self, allocator);
+    }
+
+    pub fn jsonDecode(input: []const u8, options: std.json.ParseOptions, allocator: std.mem.Allocator) !std.json.Parsed(@This()) {
+        return protobuf.json.decode(@This(), input, options, allocator);
+    }
+
+    pub fn jsonEncode(self: @This(), options: std.json.Stringify.Options, allocator: std.mem.Allocator) ![]const u8 {
+        return protobuf.json.encode(self, options, allocator);
+    }
+
+    pub fn jsonParse(allocator: std.mem.Allocator, source: anytype, options: std.json.ParseOptions) !@This() {
+        return protobuf.json.parse(@This(), allocator, source, options);
+    }
+
+    pub fn jsonStringify(self: *const @This(), jws: anytype) !void {
+        return protobuf.json.stringify(@This(), self, jws);
+    }
+};
+
+pub const AggregateResponse = struct {
+    result: ?Value = null,
+    error_msg: []const u8 = &.{},
+
+    pub const _desc_table = .{
+        .result = fd(1, .{ .submessage = {} }),
+        .error_msg = fd(2, .{ .scalar = .string }),
+    };
+
+    pub fn encode(self: @This(), writer: anytype, allocator: std.mem.Allocator) !void {
+        return protobuf.encode(writer, allocator, self);
+    }
+
+    pub fn decode(reader: anytype, allocator: std.mem.Allocator) !@This() {
+        return protobuf.decode(@This(), reader, allocator);
+    }
+
+    pub fn deinit(self: *@This(), allocator: std.mem.Allocator) void {
+        return protobuf.deinit(allocator, self);
+    }
+
+    pub fn dupe(self: @This(), allocator: std.mem.Allocator) std.mem.Allocator.Error!@This() {
+        return protobuf.dupe(@This(), self, allocator);
+    }
+
+    pub fn jsonDecode(input: []const u8, options: std.json.ParseOptions, allocator: std.mem.Allocator) !std.json.Parsed(@This()) {
+        return protobuf.json.decode(@This(), input, options, allocator);
+    }
+
+    pub fn jsonEncode(self: @This(), options: std.json.Stringify.Options, allocator: std.mem.Allocator) ![]const u8 {
+        return protobuf.json.encode(self, options, allocator);
+    }
+
+    pub fn jsonParse(allocator: std.mem.Allocator, source: anytype, options: std.json.ParseOptions) !@This() {
+        return protobuf.json.parse(@This(), allocator, source, options);
+    }
+
+    pub fn jsonStringify(self: *const @This(), jws: anytype) !void {
+        return protobuf.json.stringify(@This(), self, jws);
+    }
+};
