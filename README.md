@@ -2,7 +2,7 @@
 
 A high-performance columnar database implemented in Zig, with Apache Arrow-inspired storage, Write-Ahead Logging, and gRPC/Protocol Buffers for communication.
 
-**Current Status:** Production-ready columnar storage with persistence. Supports typed schemas, efficient columnar data storage, WAL for durability, periodic snapshots, and analytical queries.
+**Current Status:** ~Production-ready~ Kinda working columnar storage with persistence. Supports typed schemas, efficient columnar data storage, WAL for durability, periodic snapshots, and analytical queries. Still has a long way to go before it should be anywhere near a prod environment.
 
 ## Features
 
