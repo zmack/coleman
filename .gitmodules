@@ -1,0 +1,6 @@
+[submodule "libs/zig-protobuf"]
+	path = libs/zig-protobuf
+	url = https://github.com/Arwalk/zig-protobuf.git
+[submodule "libs/gRPC-zig"]
+	path = libs/gRPC-zig
+	url = https://github.com/ziglana/gRPC-zig.git
